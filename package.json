@@ -5,7 +5,9 @@
   "main": "index.js",
   "scripts": {
     "Start": "node backend/index.js",
-    "server": "nodemon backend/index.js"
+    "server": "nodemon backend/index.js",
+    "client": "npm run dev --prefix frontend",
+    "dev": "concurrently \"npm run server\" \"npm run client\""
   },
   "repository": {
     "type": "git",
@@ -25,5 +27,8 @@
     "express-async-handler": "^1.2.0",
     "jsonwebtoken": "^9.0.1",
     "mongoose": "^7.4.2"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.0"
   }
 }
