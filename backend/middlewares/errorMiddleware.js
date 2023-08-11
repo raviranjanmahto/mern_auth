@@ -1,6 +1,6 @@
 const AppError = require("../utils/appError");
 
-const handleDuplicateFieldDb = err => {
+const handleConflictErrorDb = err => {
   const name = Object.keys(err.keyValue)[0];
   const value = Object.values(err.keyValue)[0];
   const message = `Duplicate field "${name}: ${value}". Please use another ${name}!`;
@@ -23,16 +23,26 @@ const handleJWTExpireError = () =>
 module.exports = (err, req, res, next) => {
   err.statusCode = err.statusCode || 500;
   err.status = err.status || "error";
-  err.message = err.message || "Something went very wrong!";
+  err.message = err.message || "Something went wrong!";
 
-  if (err.code === 11000) err = handleDuplicateFieldDb(err);
+  if (err.code === 11000) err = handleConflictErrorDb(err);
   if (err.name === "ValidationError") err = handleValidationErrorDb(err);
   if (err.name === "JsonWebTokenError") err = handleJWTError(err);
   if (err.name === "TokenExpiredError") err = handleJWTExpireError(err);
 
-  res.status(err.statusCode).json({
-    status: err.status,
-    message: err.message,
+  if (err.isOperational)
+    // OPERATIONAL ERROR, TRUSTED ERROR, SEND MESSAGE TO THE CLIENT.
+    return res.status(err.statusCode).json({
+      status: err.status,
+      message: err.message,
+      isOperational: process.env.NODE_ENV === "production" ? undefined : true,
+      stack: process.env.NODE_ENV === "production" ? undefined : err?.stack,
+    });
+  // ELSE UNKNOWN ERROR OR PROGRAMMING ERROR, SEND GENERIC MESSAGE TO CLIENT
+  return res.status(err.statusCode).json({
+    status: "error",
+    message: "Something went very wrong!!!",
+    isOperational: process.env.NODE_ENV === "production" ? undefined : false,
     stack: process.env.NODE_ENV === "production" ? undefined : err?.stack,
   });
 };
