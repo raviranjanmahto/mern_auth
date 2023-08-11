@@ -25,24 +25,31 @@ module.exports = (err, req, res, next) => {
   err.status = err.status || "error";
   err.message = err.message || "Something went wrong!";
 
-  if (err.code === 11000) err = handleConflictErrorDb(err);
-  if (err.name === "ValidationError") err = handleValidationErrorDb(err);
-  if (err.name === "JsonWebTokenError") err = handleJWTError(err);
-  if (err.name === "TokenExpiredError") err = handleJWTExpireError(err);
-
-  if (err.isOperational)
-    // OPERATIONAL ERROR, TRUSTED ERROR, SEND MESSAGE TO THE CLIENT.
+  // ERROR IN DEVELOPMENT
+  if (process.env.NODE_ENV === "development")
     return res.status(err.statusCode).json({
       status: err.status,
       message: err.message,
-      isOperational: process.env.NODE_ENV === "production" ? undefined : true,
-      stack: process.env.NODE_ENV === "production" ? undefined : err?.stack,
+      isOperational: err.isOperational || false,
+      stack: err.stack || null,
     });
-  // ELSE UNKNOWN ERROR OR PROGRAMMING ERROR, SEND GENERIC MESSAGE TO CLIENT
-  return res.status(err.statusCode).json({
-    status: "error",
-    message: "Something went very wrong!!!",
-    isOperational: process.env.NODE_ENV === "production" ? undefined : false,
-    stack: process.env.NODE_ENV === "production" ? undefined : err?.stack,
-  });
+  //ERROR IN PRODUCTION
+  else if (process.env.NODE_ENV === "production") {
+    if (err.code === 11000) err = handleConflictErrorDb(err);
+    if (err.name === "ValidationError") err = handleValidationErrorDb(err);
+    if (err.name === "JsonWebTokenError") err = handleJWTError(err);
+    if (err.name === "TokenExpiredError") err = handleJWTExpireError(err);
+
+    if (err.isOperational)
+      // OPERATIONAL ERROR, TRUSTED ERROR, SEND MESSAGE TO THE CLIENT.
+      return res.status(err.statusCode).json({
+        status: err.status,
+        message: err.message,
+      });
+    // ELSE UNKNOWN ERROR OR PROGRAMMING ERROR, SEND GENERIC MESSAGE TO CLIENT
+    return res.status(err.statusCode).json({
+      status: "error",
+      message: "Something went very wrong!!!",
+    });
+  }
 };

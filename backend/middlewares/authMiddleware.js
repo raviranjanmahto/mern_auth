@@ -7,7 +7,7 @@ exports.protect = expressAsyncHandler(async (req, res, next) => {
   let token;
   token = req.cookies.token;
   if (!token)
-    return next(new AppError("Unauthorize, Please log in to get access!"));
+    return next(new AppError("Unauthorize, Please log in to get access!", 401));
 
   const decoded = jwt.verify(token, process.env.SECRET_KEY);
 
